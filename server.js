@@ -344,16 +344,28 @@ async function callStableDiffusion(data) {
     data: newData,
   };
 
+  const fetchConfig = {
+    method: "post",
+    url: "https://stablediffusionapi.com/api/v4/dreambooth/fetch",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
   try {
-    let isProcessing = true;
-    let response = await axios(config);
-    const fetchURL = response.data?.fetch_result;
+    const response = await axios(config);
+    const fetchID = response.data.id;
+    fetchConfig['data'] = JSON.stringify({
+      "key": process.env.STABLE_DIFFUSION_API_KEY,
+      "request_id": fetchID,
+    })
     if(response.data.status === "processing"){
+      let isProcessing = true;
       while (isProcessing) {
-      await sleep(3000);
-      response = await axios.get(fetchURL);
-      console.log(JSON.stringify(response.data, null, 2))
-      if (response.data.status !== "processing") isProcessing = false;
+        await sleep(3000);
+        const response = await axios();
+        console.log(JSON.stringify(response.data, null, 2))
+        if (response.data.status !== "processing") isProcessing = false;
       }
     }
 
