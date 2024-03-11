@@ -368,6 +368,7 @@ async function callStableDiffusion(data) {
         console.log(JSON.stringify(response.data, null, 2));
         if (response.data.status !== "processing") isProcessing = false;
       }
+      return response.data;
     }
 
     // Return when no longer processing
