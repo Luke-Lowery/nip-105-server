@@ -239,7 +239,9 @@ app.get("/:service/:payment_hash/get_result", async (req, res) => {
             .then(async (response) => {
               doc.requestResponse = response;
               doc.state = "DONE";
+              console.log(`DONE ${service} ${paymentHash} ${response}`);
               await doc.save();
+              res.status(200).send(response);
             })
             .catch(async (e) => {
               doc.requestResponse = e;
@@ -247,9 +249,11 @@ app.get("/:service/:payment_hash/get_result", async (req, res) => {
               await doc.save();
             });
 
-          doc.state = "WORKING";
-          await doc.save();
-          res.status(202).send({ state: doc.state });
+          if(service !== "STABLE"){
+            doc.state = "WORKING";
+            await doc.save();
+            res.status(202).send({ state: doc.state });
+          }
       }
     }
   } catch (e) {
