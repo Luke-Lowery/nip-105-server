@@ -355,20 +355,22 @@ async function callStableDiffusion(data) {
   try {
     const response = await axios(config);
     const fetchID = response.data.id;
-    fetchConfig['data'] = JSON.stringify({
-      "key": process.env.STABLE_DIFFUSION_API_KEY,
-      "request_id": fetchID,
-    })
+    
     if(response.data.status === "processing"){
+      fetchConfig['data'] = JSON.stringify({
+        "key": process.env.STABLE_DIFFUSION_API_KEY,
+        "request_id": fetchID,
+      })
       let isProcessing = true;
       while (isProcessing) {
         await sleep(3000);
-        const response = await axios();
-        console.log(JSON.stringify(response.data, null, 2))
+        const response = await axios(fetchConfig);
+        console.log(JSON.stringify(response.data, null, 2));
         if (response.data.status !== "processing") isProcessing = false;
       }
     }
 
+    // Return when no longer processing
     return response.data;
   } catch (e) {
     console.log(`ERROR: ${e.toString().substring(0, 50)}`);
