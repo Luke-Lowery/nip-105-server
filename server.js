@@ -349,7 +349,7 @@ async function callStableDiffusion(data) {
     let response;
     while (isProcessing) {
       response = await axios(config);
-      console.log(JSON.stringify(response, null, 2))
+      console.log(JSON.stringify(response.data, null, 2))
       if (response.data.status !== "processing") isProcessing = false;
       await sleep(5000);
     }
