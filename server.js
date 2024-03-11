@@ -370,6 +370,7 @@ async function callStableDiffusion(data) {
           isProcessing = false;
           return response.data;
         }
+      }
     }
 
     // Return when no longer processing
