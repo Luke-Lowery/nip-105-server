@@ -241,7 +241,7 @@ app.get("/:service/:payment_hash/get_result", async (req, res) => {
               doc.state = "DONE";
               console.log(`DONE ${service} ${paymentHash} ${response}`);
               await doc.save();
-              res.status(200).send(response);
+              if(service === "STABLE") res.status(200).send(response);
             })
             .catch(async (e) => {
               doc.requestResponse = e;
