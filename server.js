@@ -438,23 +438,6 @@ async function postOfferings() {
 
   await relay.publish(gptOffering);
   console.log(`Published GPT Offering: ${gptOffering.id}`);
-
-  const stablePrice = await getServicePrice("STABLE")
-  const sdOffering = createOfferingNote(
-    pk,
-    sk,
-    "https://stablediffusionapi.com/api/v4/dreambooth",
-    Number(stablePrice),
-    process.env.ENDPOINT + "/" + "STABLE",
-    "UP",
-    STABLE_DIFFUSION_SCHEMA,
-    STABLE_DIFFUSION_RESULT_SCHEMA,
-    "Get your SD needs here!"
-  );
-
-  await relay.publish(sdOffering);
-  console.log(`Published Stable Diffusion Offering: ${sdOffering.id}`);
-
   relay.close();
 }
 
