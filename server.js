@@ -447,23 +447,6 @@ async function postOfferings() {
   });
   await relay.connect();
 
-  const gptPrice = await getServicePrice("GPT")
-
-  const gptOffering = createOfferingNote(
-    pk,
-    sk,
-    "https://api.openai.com/v1/chat/completions",
-    Number(gptPrice),
-    process.env.ENDPOINT + "/" + "GPT",
-    "UP",
-    GPT_SCHEMA,
-    GPT_RESULT_SCHEMA,
-    "Get your GPT needs here!"
-  );
-
-  await relay.publish(gptOffering);
-  console.log(`Published GPT Offering: ${gptOffering.id}`);
-
   const stablePrice = await getServicePrice("STABLE")
   const sdOffering = createOfferingNote(
     pk,
