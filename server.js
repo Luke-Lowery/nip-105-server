@@ -16,8 +16,8 @@ const {
   GPT_SCHEMA,
   GPT_RESULT_SCHEMA,
   OFFERING_KIND,
-} = require("./lib/defines.js");
-const { sleep } = require("./lib/helpers");
+} = require("./const/serviceSchema.js");
+const { sleep } = require("./lib/common.js");
 
 require("dotenv").config();
 global.WebSocket = WebSocket;

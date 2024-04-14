@@ -1,8 +1,8 @@
 const WebSocket = require("ws");
 const axios = require("axios");
 const { relayInit } = require("nostr-tools");
-const { sleep } = require("./lib/helpers")
-const { OFFERING_KIND } = require('./lib/defines')
+const { sleep } = require("./lib/common")
+const { OFFERING_KIND } = require('./const/serviceSchema')
 
 require("dotenv").config();
 global.WebSocket = WebSocket;
