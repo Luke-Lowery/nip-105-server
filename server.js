@@ -15,8 +15,6 @@ const {
 const {
   GPT_SCHEMA,
   GPT_RESULT_SCHEMA,
-  STABLE_DIFFUSION_SCHEMA,
-  STABLE_DIFFUSION_RESULT_SCHEMA,
   OFFERING_KIND,
 } = require("./lib/defines.js");
 const { sleep } = require("./lib/helpers");
@@ -285,8 +283,6 @@ async function getServicePrice(service) {
   switch (service) {
     case "GPT":
       return usd_to_millisats(process.env.GPT_USD,bitcoinPrice);
-    case "STABLE":
-      return usd_to_millisats(process.env.STABLE_DIFFUSION_USD,bitcoinPrice);
     default:
       return process.env.GPT_MSATS;
   }
@@ -296,17 +292,9 @@ function submitService(service, data) {
   switch (service) {
     case "GPT":
       return callChatGPT(data);
-    case "STABLE":
-      return callStableDiffusion(data);
-    case "YTDL":
-      return callYitter(data);
     default:
       return callChatGPT(data);
   }
-}
-
-async function callYitter(data){
-  
 }
 
 async function callChatGPT(data) {
@@ -322,37 +310,6 @@ async function callChatGPT(data) {
 
   try {
     const response = await axios(config);
-    return response.data;
-  } catch (e) {
-    console.log(`ERROR: ${e.toString().substring(0, 50)}`);
-    return e;
-  }
-}
-
-async function callStableDiffusion(data) {
-  const newData = {
-    ...data,
-    key: process.env.STABLE_DIFFUSION_API_KEY,
-  };
-
-  const config = {
-    method: "post",
-    url: "https://stablediffusionapi.com/api/v4/dreambooth",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    data: newData,
-  };
-
-  try {
-    let isProcessing = true;
-    let response;
-    while (isProcessing) {
-      response = await axios(config);
-      if (response.data.status !== "processing") isProcessing = false;
-      await sleep(1000);
-    }
-
     return response.data;
   } catch (e) {
     console.log(`ERROR: ${e.toString().substring(0, 50)}`);
