@@ -7,41 +7,22 @@ const bodyParser = require("body-parser");
 const { getBitcoinPrice } = require('./lib/bitcoinPrice');
 const crypto = require('crypto');
 const {
-  relayInit,
-  getPublicKey,
-  getEventHash,
-  getSignature,
-} = require("nostr-tools");
-const {
   GPT_SCHEMA,
   GPT_RESULT_SCHEMA,
   OFFERING_KIND,
 } = require("./const/serviceSchema.js");
-const { sleep } = require("./lib/common.js");
 
 require("dotenv").config();
 global.WebSocket = WebSocket;
+
+const {JobRequest} = require('./models/jobRequest')
+const {postOfferings} = require('./lib/postOfferings')
 
 const app = express();
 
 const mongoose = require("mongoose");
 
 // --------------------- MONGOOSE -----------------------------
-
-const JobRequestSchema = new mongoose.Schema({
-  invoice: Object,
-  paymentHash: String,
-  verifyURL: String,
-  status: String,
-  result: String,
-  price: Number,
-  requestData: Object,
-  requestResponse: Object,
-  service: String,
-  state: String,
-});
-
-const JobRequest = mongoose.model("JobRequest", JobRequestSchema);
 
 const mongoURI = process.env.MONGO_URI;
 
@@ -318,88 +299,8 @@ async function callChatGPT(data) {
 }
 
 // --------------------- NOSTR -----------------------------
-function createOfferingNote(
-  pk,
-  sk,
-  service,
-  cost,
-  endpoint,
-  status,
-  inputSchema,
-  outputSchema,
-  description
-) {
-  const now = Math.floor(Date.now() / 1000);
-
-  console.log(typeof(outputSchema))
-  const outputHash = sha256Hash(outputSchema);
-  console.log(`outputHash:${outputHash}`)
-
-  const inputHash = sha256Hash(inputSchema);
-  console.log(`inputHash:${inputHash}`)
-
-  const content = {
-    endpoint, // string
-    status, // UP/DOWN/CLOSED
-    cost, // number
-    inputSchema, // Json Schema
-    outputSchema, // Json Schema
-    description, // string / NULL
-    inputHash,
-    outputHash
-  };
-
-  let offeringEvent = {
-    kind: OFFERING_KIND,
-    pubkey: pk,
-    created_at: now,
-    tags: [
-      ["s", service],
-      ["d", service],
-    ],
-    content: JSON.stringify(content),
-  };
-  offeringEvent.id = getEventHash(offeringEvent);
-  offeringEvent.sig = getSignature(offeringEvent, sk);
-
-  return offeringEvent;
-}
-
-// Post Offerings
-async function postOfferings() {
-  const sk = process.env.NOSTR_SK;
-  const pk = getPublicKey(sk);
-
-  const relay = relayInit(process.env.NOSTR_RELAY);
-  relay.on("connect", () => {
-    console.log(`connected to ${relay.url}`);
-  });
-  relay.on("error", (e) => {
-    console.log(`failed to connect to ${relay.url}: ${e}`);
-  });
-  await relay.connect();
-
-  const gptPrice = await getServicePrice("GPT")
-
-  const gptOffering = createOfferingNote(
-    pk,
-    sk,
-    "https://api.openai.com/v1/chat/completions",
-    Number(gptPrice),
-    process.env.ENDPOINT + "/" + "GPT",
-    "UP",
-    GPT_SCHEMA,
-    GPT_RESULT_SCHEMA,
-    "Get your GPT needs here!"
-  );
-
-  await relay.publish(gptOffering);
-  console.log(`Published GPT Offering: ${gptOffering.id}`);
-  relay.close();
-}
-
-postOfferings();
-setInterval(postOfferings, 300000);
+//postOfferings();
+//setInterval(postOfferings, 300000);
 
 
 // --------------------- SERVER -----------------------------
