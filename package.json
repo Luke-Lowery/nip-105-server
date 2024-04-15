@@ -13,6 +13,10 @@
   },
   "scripts": {
     "start-server": "node server.js",
-    "start-client": "node client.js"
+    "start-client": "node client.js",
+    "test": "npx jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
