@@ -78,9 +78,10 @@ exports.getResult = asyncHandler(async (req,res,next) =>{
     try {
         const service = req.params.service;
         const paymentHash = req.params.payment_hash;
-        const { invoice, isPaid } = await getIsInvoicePaid(paymentHash);
         const authAllowed = req.body.authAllowed;
         const authCategory = req.body.authCategory;
+        const shouldSkipPaidVerify = authCategory === 1
+        const { invoice, isPaid } = await getIsInvoicePaid(paymentHash,shouldSkipPaidVerify);
         const successAction =  {
             tag: "url",
             url: `${process.env.ENDPOINT}/${service}/${paymentHash}/get_result`,
@@ -110,14 +111,14 @@ exports.getResult = asyncHandler(async (req,res,next) =>{
 
                 // Use async/await to ensure sequential execution
                 try {
-                const response = await submitService(service, data);
-                console.log(`requestResponse:`,response)
-                doc.requestResponse = response;
-                doc.state = "DONE";
+                    const response = await submitService(service, data);
+                    console.log(`requestResponse:`,response)
+                    doc.requestResponse = response;
+                    doc.state = "DONE";
                 } catch (e) {
-                doc.requestResponse = e;
-                doc.state = "ERROR";
-                console.log("submitService error:", e)
+                    doc.requestResponse = e;
+                    doc.state = "ERROR";
+                    console.log("submitService error:", e)
                 }
 
                 // Save the document after setting the state
