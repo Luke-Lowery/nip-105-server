@@ -1,49 +1,32 @@
+// external dependencies
+const express = require('express');
 const WebSocket = require("ws");
-const express = require("express");
 const cors = require('cors');
+const bodyParser = require("body-parser");
+const mongoose = require('mongoose');
+
+// middleware
+const logger = require('./middleware/logger');
+
+// routes
+const serviceRoutes = require('./routes/service');
+
+// used for testing
+const {JobRequest} = require('./models/jobRequest')
+const {postOfferings} = require('./lib/postOfferings')
+const { 
+  validatePreimage, 
+  validateCascdrUserEligibility 
+} = require('./lib/authChecks');
+
+// misc
 const axios = require("axios");
 const bolt11 = require("bolt11");
-const bodyParser = require("body-parser");
 const { getBitcoinPrice } = require('./lib/bitcoinPrice');
 const crypto = require('crypto');
-const {
-  relayInit,
-  getPublicKey,
-  getEventHash,
-  getSignature,
-} = require("nostr-tools");
-const {
-  GPT_SCHEMA,
-  GPT_RESULT_SCHEMA,
-  STABLE_DIFFUSION_SCHEMA,
-  STABLE_DIFFUSION_RESULT_SCHEMA,
-  OFFERING_KIND,
-} = require("./lib/defines.js");
 const { sleep } = require("./lib/helpers");
 
-require("dotenv").config();
-global.WebSocket = WebSocket;
-
-const app = express();
-
-const mongoose = require("mongoose");
-
 // --------------------- MONGOOSE -----------------------------
-
-const JobRequestSchema = new mongoose.Schema({
-  invoice: Object,
-  paymentHash: String,
-  verifyURL: String,
-  status: String,
-  result: String,
-  price: Number,
-  requestData: Object,
-  requestResponse: Object,
-  service: String,
-  state: String,
-});
-
-const JobRequest = mongoose.model("JobRequest", JobRequestSchema);
 
 const mongoURI = process.env.MONGO_URI;
 
@@ -54,6 +37,28 @@ db.on("error", console.error.bind(console, "MongoDB connection error:"));
 db.once("open", () => {
   console.log("Connected to MongoDB!");
 });
+
+// --------------------- APP SETUP -----------------------------
+
+const app = express();
+require("dotenv").config();
+global.WebSocket = WebSocket;
+
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('*', cors());
+
+app.use(bodyParser.json());
+app.set('trust proxy', true); // trust first proxy
+
+// Request Logging
+app.use(logger);
+
 
 // --------------------- HELPERS -----------------------------
 
@@ -69,18 +74,6 @@ function getLNURL() {
   const username = parts[0];
   const domain = parts[1];
   return `https://${domain}/.well-known/lnurlp/${username}`;
-}
-
-// Function to return the SHA256 hash of a given string
-function sha256Hash(obj) {
-  // Create a SHA256 hash
-  const hash = crypto.createHash('sha256');
-
-  // Update the hash with the string
-  hash.update(JSON.stringify(obj));
-
-  // Return the hash digest in hexadecimal format
-  return hash.digest('hex');
 }
 
 async function createNewJobDocument(service, invoice, paymentHash, price) {
@@ -184,10 +177,6 @@ function getSuccessAction(service, paymentHash) {
 
 // --------------------- ENDPOINTS -----------------------------
 
-app.use(cors());
-
-app.use(bodyParser.json());
-
 app.post("/:service", async (req, res) => {
   try {
     console.log("Rendering service:", req.params.service);
@@ -287,8 +276,6 @@ async function getServicePrice(service) {
   const bitcoinPrice = await getBitcoinPrice(); 
   
   switch (service) {
-    case "GPT":
-      return usd_to_millisats(process.env.GPT_USD,bitcoinPrice);
     case "STABLE":
       return usd_to_millisats(process.env.STABLE_DIFFUSION_USD,bitcoinPrice);
     default:
@@ -298,38 +285,10 @@ async function getServicePrice(service) {
 
 function submitService(service, data) {
   switch (service) {
-    case "GPT":
-      return callChatGPT(data);
     case "STABLE":
       return callStableDiffusion(data);
-    case "YTDL":
-      return callYitter(data);
     default:
-      return callChatGPT(data);
-  }
-}
-
-async function callYitter(data){
-  
-}
-
-async function callChatGPT(data) {
-  var config = {
-    method: "post",
-    url: "https://api.openai.com/v1/chat/completions",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.CHAT_GPT_API_KEY}`,
-    },
-    data,
-  };
-
-  try {
-    const response = await axios(config);
-    return response.data;
-  } catch (e) {
-    console.log(`ERROR: ${e.toString().substring(0, 50)}`);
-    return e;
+      return callStableDiffusion(data);
   }
 }
 
@@ -385,89 +344,8 @@ async function callStableDiffusion(data) {
   }
 }
 
-// --------------------- NOSTR -----------------------------
-function createOfferingNote(
-  pk,
-  sk,
-  service,
-  cost,
-  endpoint,
-  status,
-  inputSchema,
-  outputSchema,
-  description
-) {
-  const now = Math.floor(Date.now() / 1000);
-
-  console.log(typeof(outputSchema))
-  const outputHash = sha256Hash(outputSchema);
-  console.log(`outputHash:${outputHash}`)
-
-  const inputHash = sha256Hash(inputSchema);
-  console.log(`inputHash:${inputHash}`)
-
-  const content = {
-    endpoint, // string
-    status, // UP/DOWN/CLOSED
-    cost, // number
-    inputSchema, // Json Schema
-    outputSchema, // Json Schema
-    description, // string / NULL
-    inputHash,
-    outputHash
-  };
-
-  let offeringEvent = {
-    kind: OFFERING_KIND,
-    pubkey: pk,
-    created_at: now,
-    tags: [
-      ["s", service],
-      ["d", service],
-    ],
-    content: JSON.stringify(content),
-  };
-  offeringEvent.id = getEventHash(offeringEvent);
-  offeringEvent.sig = getSignature(offeringEvent, sk);
-
-  return offeringEvent;
-}
-
-// Post Offerings
-async function postOfferings() {
-  const sk = process.env.NOSTR_SK;
-  const pk = getPublicKey(sk);
-
-  const relay = relayInit(process.env.NOSTR_RELAY);
-  relay.on("connect", () => {
-    console.log(`connected to ${relay.url}`);
-  });
-  relay.on("error", (e) => {
-    console.log(`failed to connect to ${relay.url}: ${e}`);
-  });
-  await relay.connect();
-
-  const stablePrice = await getServicePrice("STABLE")
-  const sdOffering = createOfferingNote(
-    pk,
-    sk,
-    "https://stablediffusionapi.com/api/v4/dreambooth",
-    Number(stablePrice),
-    process.env.ENDPOINT + "/" + "STABLE",
-    "UP",
-    STABLE_DIFFUSION_SCHEMA,
-    STABLE_DIFFUSION_RESULT_SCHEMA,
-    "Get your SD needs here!"
-  );
-
-  await relay.publish(sdOffering);
-  console.log(`Published Stable Diffusion Offering: ${sdOffering.id}`);
-
-  relay.close();
-}
-
-postOfferings();
-setInterval(postOfferings, 300000);
+// postOfferings();
+// setInterval(postOfferings, 300000);
 
 
 // --------------------- SERVER -----------------------------
@@ -478,6 +356,6 @@ if (port == null || port == "") {
 }
 
 app.listen(port, async function () {
-  console.log("Starting NIP105 Server...");
+  console.log("Starting NIP105 Stable Diffusion Server...");
   console.log(`Server started on port ${port}.`);
 });
