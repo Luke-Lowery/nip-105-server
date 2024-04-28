@@ -117,7 +117,8 @@ exports.getResult = asyncHandler(async (req,res,next) =>{
                     doc.state = "DONE";
                     console.log(`DONE ${service} ${paymentHash} ${response}`);
                     await doc.save();
-                    if(service === "STABLE") res.status(200).send(...response, authCategory, paymentHash, successAction);
+                    console.log("Doc saved!")
+                    if(service === "STABLE") res.status(200).send(response, authCategory, paymentHash, successAction);
                 } catch (e) {
                     doc.requestResponse = e;
                     doc.state = "ERROR";
