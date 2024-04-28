@@ -56,8 +56,8 @@ app.use(logger);
 
 app.use('/', serviceRoutes);
 
-// postOfferings();
-// setInterval(postOfferings, 300000);
+postOfferings();
+setInterval(postOfferings, 300000);
 
 
 // --------------------- SERVER -----------------------------
