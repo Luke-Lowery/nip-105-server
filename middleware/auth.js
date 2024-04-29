@@ -29,8 +29,9 @@ const auth = async (req, res, next) => {
     
         // next check the HMAC
         const SHARED_SECRET = process.env.SHARED_HMAC_SECRET; 
-        if(SHARED_SECRET){
-            const receivedHmac = req.headers['x-hmac-signature'];
+        const receivedHmac = req.headers['x-hmac-signature'];
+        if(SHARED_SECRET && receivedHmac){
+            
             const receivedTimestamp = req.headers['x-timestamp'] ? req.headers['x-timestamp'] : "no timestamp header";
             const hmac = crypto.createHmac('sha256', SHARED_SECRET).update(receivedTimestamp).digest('hex');
         
