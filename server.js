@@ -168,7 +168,39 @@ function getSuccessAction(service, paymentHash) {
 
 // --------------------- ENDPOINTS -----------------------------
 
+const corsOptions = {
+  origin: ['https://cascdr.xyz', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,
+  maxAge: 600, // Preflight results can be cached for 10 minutes
+  optionsSuccessStatus: 200,
+  timeout: 60000 // Increase timeout to 60 seconds
+};
+
+// Apply CORS configuration
+app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Increase server timeout settings
+app.use((req, res, next) => {
+  res.setTimeout(60000); // 60 seconds timeout for all requests
+  next();
+});
+
 app.use(cors());
+
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || 'Internal Server Error',
+      status: err.status || 500
+    }
+  });
+});
 
 app.use(bodyParser.json());
 
