@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
 const logger = require('./middleware/logger');
 const serviceRoutes = require('./routes/service');
-const setupBedrockRoutes = require('./routes/bedrock');
 const {JobRequest} = require('./models/jobRequest');
 const {postOfferings} = require('./lib/postOfferings');
 const { validatePreimage, validateCascdrUserEligibility } = require('./lib/authChecks');
@@ -80,18 +79,6 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// Configure and set up the Bedrock routes directly
-const bedrockConfig = {
-  region: process.env.AWS_REGION,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  modelId: process.env.BEDROCK_MODEL_ID || "us.deepseek.r1-v1:0",
-  maxTokens: parseInt(process.env.BEDROCK_MAX_TOKENS || "1000")
-};
-
-// Set up Bedrock routes
-setupBedrockRoutes(app, bedrockConfig);
-
 // Routes
 app.use('/', serviceRoutes);
 
@@ -106,7 +93,7 @@ const startServer = async () => {
     await connectDB();
     const server = app.listen(port, () => {
       console.log(`Server running on port ${port}`);
-      console.log(`Bedrock service available at /bedrock/query`);
+      console.log(`Services available: GPT, BEDROCK`);
     });
 
     // Graceful shutdown

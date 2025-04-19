@@ -31,6 +31,9 @@ const GPT_SCHEMA = {
 const BEDROCK_SCHEMA = {
     "type": "object",
     "properties": {
+        "model": {
+            "type": "string"
+        },
         "messages": {
             "type": "array",
             "items": {

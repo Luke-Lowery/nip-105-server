@@ -29,8 +29,8 @@ curl -X POST \
 
 echo -e "\n\n"
 
-# Test 2: Make a non-streaming request to Bedrock
-echo "2. Testing Bedrock non-streaming endpoint..."
+# Test 2: Make a request to Bedrock
+echo "2. Testing Bedrock endpoint..."
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
@@ -39,32 +39,16 @@ curl -X POST \
     ],
     "stream": false
   }' \
-  ${BASE_URL}/bedrock/query
+  ${BASE_URL}/BEDROCK
 
 echo -e "\n\n"
 
-# Test 3: Estimate cost with Bedrock
-echo "3. Testing Bedrock cost estimation endpoint..."
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "inputTokens": 500,
-    "outputTokens": 1000
-  }' \
-  ${BASE_URL}/bedrock/estimate-cost
-
-echo -e "\n\n"
-
-# Test 4: Make a streaming request to Bedrock
-echo "4. Testing Bedrock streaming endpoint (press Ctrl+C to stop)..."
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "user", "content": "Write a short poem about AI"}
-    ],
-    "stream": true
-  }' \
-  ${BASE_URL}/bedrock/query
-
-echo -e "\n\n" 
+# Test 3: Testing with payment hash retrieval
+echo "3. Testing response retrieval with payment hash (if available from previous request)..."
+read -p "Enter payment hash from previous request (or press enter to skip): " PAYMENT_HASH
+if [ ! -z "$PAYMENT_HASH" ]; then
+  SERVICE_TYPE="BEDROCK"
+  echo "Using service type: ${SERVICE_TYPE}"
+  curl -X GET ${BASE_URL}/${SERVICE_TYPE}/${PAYMENT_HASH}/get_result
+  echo -e "\n\n"
+fi 
