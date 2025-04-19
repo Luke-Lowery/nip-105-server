@@ -1,4 +1,3 @@
-
 const OFFERING_KIND = 31_402;
 
 const GPT_SCHEMA = {
@@ -27,6 +26,42 @@ const GPT_SCHEMA = {
         }
     },
     "required": ["model", "messages"]
+}
+
+const BEDROCK_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "model": {
+            "type": "string"
+        },
+        "messages": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "enum": ["system", "user", "assistant"]
+                    },
+                    "content": {
+                        "type": "string"
+                    }
+                },
+                "required": ["role", "content"]
+            },
+            "minItems": 1
+        },
+        "systemPrompt": {
+            "type": "string"
+        },
+        "stream": {
+            "type": "boolean"
+        },
+        "maxTokens": {
+            "type": "integer"
+        }
+    },
+    "required": ["messages"]
 }
 
 const GPT_RESULT_SCHEMA = {
@@ -94,6 +129,69 @@ const GPT_RESULT_SCHEMA = {
     }
   }
 
+const BEDROCK_RESULT_SCHEMA = {
+  "type": "object",
+  "properties": {
+    "response": {
+      "type": "object",
+      "properties": {
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "amazon": {
+          "type": "object",
+          "properties": {
+            "bedrock": {
+              "type": "object",
+              "properties": {
+                "invocationMetrics": {
+                  "type": "object",
+                  "properties": {
+                    "inputTokenCount": {
+                      "type": "integer"
+                    },
+                    "outputTokenCount": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "input_tokens": {
+          "type": "integer"
+        },
+        "output_tokens": {
+          "type": "integer"
+        },
+        "total_tokens": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
 
-
-module.exports = { GPT_SCHEMA, GPT_RESULT_SCHEMA, OFFERING_KIND };
+module.exports = { GPT_SCHEMA, BEDROCK_SCHEMA, BEDROCK_RESULT_SCHEMA, GPT_RESULT_SCHEMA, OFFERING_KIND };
