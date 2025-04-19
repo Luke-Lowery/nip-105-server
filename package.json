@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.787.0",
     "axios": "^1.7.7",
     "body-parser": "^1.20.3",
     "bolt11": "^1.4.1",
@@ -15,7 +16,9 @@
   "scripts": {
     "start-server": "node server.js",
     "start-client": "node client.js",
-    "test": "npx jest"
+    "start-bedrock": "node bedrock-server.js",
+    "test": "npx jest",
+    "test-bedrock": "node test/bedrock-test.js"
   },
   "devDependencies": {
     "jest": "^29.7.0"

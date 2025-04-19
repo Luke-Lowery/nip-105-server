@@ -112,9 +112,92 @@ exports.getResult = asyncHandler(async (req,res,next) =>{
                 // Use async/await to ensure sequential execution
                 try {
                     const response = await submitService(service, data);
-                    console.log(`requestResponse:`,response)
-                    doc.requestResponse = response;
-                    doc.state = "DONE";
+                    console.log(`requestResponse:`, response);
+
+                    // Handle Bedrock streaming response specifically
+                    if (service === "BEDROCK" && response.type === "stream") {
+                        // Mark that we're handling this as a streaming response
+                        doc.state = "STREAMING";
+                        await doc.save();
+
+                        // Set up SSE headers
+                        res.setHeader('Content-Type', 'text/event-stream');
+                        res.setHeader('Cache-Control', 'no-cache');
+                        res.setHeader('Connection', 'keep-alive');
+                        
+                        // Send initial connection message
+                        res.write(`data: ${JSON.stringify({ type: "connection_established" })}\n\n`);
+                        
+                        try {
+                            const streamResponse = await response.client.send(response.command);
+                            
+                            // Track token usage
+                            let inputTokens = 0;
+                            let outputTokens = 0;
+                            let responseData = [];
+                            
+                            for await (const chunk of streamResponse.body) {
+                                if (chunk.chunk && chunk.chunk.bytes) {
+                                    const chunkData = new TextDecoder().decode(chunk.chunk.bytes);
+                                    try {
+                                        const parsedData = JSON.parse(chunkData);
+                                        
+                                        // Store the response data to save in the document
+                                        responseData.push(parsedData);
+                                        
+                                        // Track token usage if available in the response
+                                        if (parsedData.amazon?.bedrock?.invocationMetrics) {
+                                            inputTokens = parsedData.amazon.bedrock.invocationMetrics.inputTokenCount || 0;
+                                            outputTokens = parsedData.amazon.bedrock.invocationMetrics.outputTokenCount || 0;
+                                        }
+                                        
+                                        res.write(`data: ${JSON.stringify(parsedData)}\n\n`);
+                                    } catch (e) {
+                                        console.error("Error parsing chunk:", e);
+                                        res.write(`data: ${JSON.stringify({ error: "Error parsing chunk" })}\n\n`);
+                                    }
+                                }
+                            }
+                            
+                            // Save the complete response data to the document
+                            doc.requestResponse = {
+                                response: responseData,
+                                usage: {
+                                    input_tokens: inputTokens,
+                                    output_tokens: outputTokens,
+                                    total_tokens: inputTokens + outputTokens
+                                }
+                            };
+                            doc.state = "DONE";
+                            await doc.save();
+                            
+                            // Send completion message with token usage
+                            res.write(`data: ${JSON.stringify({ 
+                                type: "done", 
+                                usage: { 
+                                    input_tokens: inputTokens,
+                                    output_tokens: outputTokens,
+                                    total_tokens: inputTokens + outputTokens
+                                }
+                            })}\n\n`);
+                            res.end();
+                            return;
+                        } catch (error) {
+                            console.error("Streaming error:", error);
+                            res.write(`data: ${JSON.stringify({ error: error.message || "Unknown streaming error" })}\n\n`);
+                            res.end();
+                            
+                            // Update the document with the error
+                            doc.requestResponse = { error: error.message || "Unknown streaming error" };
+                            doc.state = "ERROR";
+                            await doc.save();
+                            return;
+                        }
+                    } else {
+                        // Normal non-streaming response
+                        doc.requestResponse = response;
+                        doc.state = "DONE";
+                    }
                 } catch (e) {
                     doc.requestResponse = e;
                     doc.state = "ERROR";
