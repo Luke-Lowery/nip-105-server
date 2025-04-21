@@ -2,7 +2,7 @@
 
 # Set the base URL for the main server
 PORT=${1:-3132}  # Default to 3132 if no port is provided
-BASE_URL="http://localhost:${PORT}"
+BASE_URL="https://urchin-app-eswvl.ondigitalocean.app"
 
 # Check if the server is running
 echo "Checking if the server is running on port ${PORT}..."

@@ -1,3 +1,5 @@
 node_modules
 .env
 .env_remote
+test-hmac-auth.sh
+curl-hmac-command.txt
