@@ -1,6 +1,7 @@
 const { validatePreimage, validateCascdrUserEligibility } = require('../lib/authChecks');
 const crypto = require('crypto');
-
+const dotenv = require('dotenv');
+const debug = process.env.DEBUG === "TRUE";
 const EndpointRequestedTypes = {
     CREATE_JOB: 0,
     GET_RESULT: 1,
@@ -57,7 +58,7 @@ const auth = async (req, res, next) => {
             userEligible = await validateCascdrUserEligibility(token, reqIPAddress, requestedService, endpointRequested);
         }
         console.log("userEligible map result:", userEligible)
-        if(userEligible?.hasFreeTrial){
+        if(userEligible?.hasFreeTrial || process.env.DEBUG === "TRUE"){
             req.body.authAllowed = true;
             req.body.authCategory = 0;
             console.log("got free trial!")
